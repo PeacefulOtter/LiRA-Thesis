@@ -6,16 +6,16 @@ from sklearn.metrics import mean_squared_error
 import numpy as np
 
 
-def train_with_kernel(kernel, X_train, y_train, n_restarts_optimizer=5):
+def train_with_kernel(kernel, dataset, n_restarts_optimizer=5):
+    X_train, y_train = dataset.get()
     gpr = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=n_restarts_optimizer)
     gpr = gpr.fit(X_train, y_train)
     return gpr
 
-def train_dataset(dataset, kernel, i=0):
-    (X, y) = dataset.data
-    gpr = train_with_kernel(kernel(), X, y)
+def train_dataset(dataset, kernel, i):
+    gpr = train_with_kernel(kernel(), dataset)
     print(gpr.kernel_)
-    mse, score, likelihood, string = test_model(gpr, X, y)
+    mse, score, likelihood, string = test_model(gpr, dataset)
     print(i, '\t', string)
     return gpr, mse, score, likelihood
 
@@ -24,7 +24,7 @@ def train_datasets(datasets, kernel):
     mses = []
     scores = []
     likelihoods = []
-    for i, dataset in enumerate(datasets):
+    for i, (_, dataset) in enumerate(datasets.items()):
         gpr, mse, score, likelihood = train_dataset(dataset, kernel, i)
         gprs.append(gpr)
         mses.append(mse)
@@ -37,8 +37,8 @@ def train_datasets(datasets, kernel):
     return gprs
 
 
-def test_model(gpr, X, y):
-
+def test_model(gpr, dataset):
+    X, y = dataset.get()
     likelihood = gpr.log_marginal_likelihood(gpr.kernel_.theta)
     mean_pred = gpr.predict(X)
     score = gpr.score(X, y)

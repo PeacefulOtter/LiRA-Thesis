@@ -1,5 +1,6 @@
 
-from src.types import WayIRI
+
+from src.types import WayIRI, Dataset
 
 import numpy as np
 import pandas as pd
@@ -43,10 +44,17 @@ def map_match(data: np.ndarray):
 
     # get way_ids and edge_lengths (in meters)
     way_ids = [edge['way_id'] for edge in chunk['edges']]
-    edge_lengths = [edge['length'] * 1000 for edge in chunk['edges']]
+    edge_lengths = [int(edge['length'] * 1000.0) for edge in chunk['edges']]
 
+    from itertools import groupby
+    from operator import itemgetter
+    from functools import reduce
+
+    way_lengths = {}
+    for way_id, group in groupby(zip(way_ids, edge_lengths), key=itemgetter(0)):
+        way_lengths[way_id] = reduce(lambda accumulator, element: accumulator + int(element[1]), group, 0)
     
-    mm_ways_points = []
+    ways_data = {}
     prev_dist = 0
     prev_way_id = 0
     prev_edge_index = 0
@@ -78,15 +86,14 @@ def map_match(data: np.ndarray):
         edge_dist = dist * edge_length
         way_dist = prev_way_dist + edge_dist
 
-        mm_ways_points.append( WayIRI(
-            way_id,
-            way_dist,
-            data[i].value, 
-        ) )
+        if way_id not in ways_data: 
+            ways_data[way_id] = Dataset()
+
+        ways_data[way_id].append(way_dist, data[i].value)
 
         prev_dist = dist
         prev_way_id = way_id
         prev_edge_index = edge_index
 
     
-    return mm_ways_points
+    return ways_data, way_lengths

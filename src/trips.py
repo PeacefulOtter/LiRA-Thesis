@@ -3,7 +3,7 @@
 import numpy as np
 import json
 
-from src.types import LatLonIRI
+from src.types import LatLonIRI, Dataset
 from src.map_match import map_match
 from src.database import query_postgres
 
@@ -13,12 +13,10 @@ def parseIRI(row):
     if obj['IRI5'] == None and obj['IRI21'] == None:
         return None
 
-    iri = (obj['IRI5'] + obj['IRI21']) / 2
-
     return LatLonIRI(
         row['lat'], 
         row['lon'], 
-        iri, 
+        (obj['IRI5'] + obj['IRI21']) / 2, 
         str(row['Created_Date'])
     )
 
@@ -39,17 +37,20 @@ def query_trip(trip_id):
 
 def query_trips(trip_ids):
 
-    datas = {}
+    ways_datas = {}
     
-    # query trips and store them per way_id 
+    # query trips and store regroup them per way_id
     for trip_id in trip_ids: 
-        for pos in query_trip(trip_id):
-            if pos.way_id not in datas:
-                datas[pos.way_id] = np.array([])
-            datas[pos.way_id] = np.append(datas[pos.way_id], pos)
+        ways_data, way_lengths = query_trip(trip_id)
+        for way_id, way_data in ways_data.items():
+            if way_id not in ways_datas:
+                ways_datas[way_id] = Dataset()
+            ways_datas[way_id].append(way_data.X, way_data.y)
+
+    print(ways_datas)
 
     # sort the IRIs in each way per way_dist
-    for way_id, iris in datas.items():
-        datas[way_id] = sorted(iris, key=lambda x: x.way_dist) 
+    for way_id, data in ways_datas.items():
+        data.sort()
 
-    return datas
+    return ways_datas, way_lengths
