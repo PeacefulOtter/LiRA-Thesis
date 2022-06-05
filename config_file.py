@@ -1,0 +1,5 @@
+user_DRD_DB="se2-2021"
+user_GM_DB="se2-2021"
+pass_GM_DB="h5vaVt"
+pass_DRD_DB="h5vaVt"
+postgis_pwd="PPt9SeQ.Kq>X`j`7s"
